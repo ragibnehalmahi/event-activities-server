@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  HOST
+  ADMIN
+}
+
+enum EventStatus {
+  OPEN
+  FULL
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  name         String
+  profileImage String?
+  bio          String?
+  interests    String[] 
+  location     String?
+  role         Role     @default(USER)
+
+  eventsHosted Event[]  @relation("EventsHosted")
+  eventsJoined EventParticipant[]
+  reviewsGiven Review[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Event {
+  id               String   @id @default(uuid())
+  name             String
+  type             String
+  date             DateTime
+  location         String
+  minParticipants  Int      @default(1)
+  maxParticipants  Int
+  description      String
+  image            String?
+  joiningFee       Float    @default(0)
+  status           EventStatus @default(OPEN)
+
+  hostId           String
+  host             User     @relation("EventsHosted", fields: [hostId], references: [id])
+  
+  participants     EventParticipant[]
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model EventParticipant {
+  id      String @id @default(uuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+  
+  joinedAt DateTime @default(now())
+  
+  @@unique([userId, eventId])
+}
+
+model Review {
+  id      String   @id @default(uuid())
+  rating  Int
+  comment String?
+  
+  userId  String
+  user    User     @relation(fields: [userId], references: [id])
+  hostId  String
+  
+  createdAt DateTime @default(now())
+}
